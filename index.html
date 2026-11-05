@@ -1,0 +1,992 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F3A5F"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png">
+<title>Scelta Materiali</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: archive list → visit editor (header, general floor, stack of room cards → items → options A/B/C); sticky action bar. */
+:root{
+  --ink:#1F3A5F; --ink-soft:#4A5E78; --paper:#F3F5F8; --sheet:#FFFFFF; --line:#C9D2DD; --tint:#E4EBF3;
+  --vis:#E8650F; --vis-ink:#FFFFFF; --ok:#1E7A4C; --ok-tint:#E3F3EA; --muted:#6B7A8C; --field:#FFFFFF; --text:#17212E; --bad:#C0392B;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding-top:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ink:#9DB8DA; --ink-soft:#8EA1B8; --paper:#0F1620; --sheet:#17212E; --line:#2E3C4E; --tint:#1F2C3C;
+  --vis:#F07A2A; --vis-ink:#140A02; --ok:#4CC28A; --ok-tint:#173126; --muted:#8C9AAB; --field:#111A25; --text:#E6ECF3; --bad:#F07264; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#9DB8DA; --ink-soft:#8EA1B8; --paper:#0F1620; --sheet:#17212E; --line:#2E3C4E; --tint:#1F2C3C;
+  --vis:#F07A2A; --vis-ink:#140A02; --ok:#4CC28A; --ok-tint:#173126; --muted:#8C9AAB; --field:#111A25; --text:#E6ECF3; --bad:#F07264; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--text);font:16px/1.4 var(--body)}
+[hidden]{display:none!important}
+img{max-width:100%}
+.wrap{max-width:1000px;margin:0 auto;padding-inline:16px;padding-block:18px 130px;display:flex;flex-direction:column;gap:14px}
+h1{font:700 2rem/1 var(--display);color:var(--ink);margin:0;text-transform:uppercase;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:.9rem;margin-top:4px}
+.toprow{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.sheet>h2,.amb>header{margin:0;background:var(--ink);color:var(--sheet);font:600 1.15rem/1.1 var(--display);letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sheet>h2 small{font:400 .78rem var(--body);letter-spacing:0;text-transform:none;opacity:.8}
+.body{padding:14px;display:flex;flex-direction:column;gap:14px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
+.grid.tight{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.lab{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+input,textarea,select{font:inherit;color:var(--text);background:var(--field);border:1px solid var(--line);border-radius:4px;padding:9px 10px;min-height:44px;width:100%}
+textarea{min-height:70px;resize:vertical}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--vis);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font:500 .92rem var(--body);border:1px solid var(--line);background:var(--field);color:var(--text);border-radius:999px;padding:7px 12px;min-height:40px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip::before{content:"";width:13px;height:13px;border:1.5px solid var(--ink-soft);border-radius:3px;flex:none}
+.chip.single::before{border-radius:50%}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
+.chip[aria-pressed="true"]::before{background:var(--vis);border-color:var(--vis)}
+.btn{font:600 .98rem var(--body);border-radius:5px;border:1px solid var(--line);background:var(--field);color:var(--text);padding:9px 15px;min-height:44px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none}
+.btn.primary{background:var(--vis);border-color:var(--vis);color:var(--vis-ink)}
+.btn.ghost{background:transparent}
+.btn.small{min-height:36px;padding:5px 11px;font-size:.88rem}
+.btn.danger,.btn.armed{color:var(--bad);border-color:var(--bad)}
+.btn:disabled{opacity:.55;cursor:default}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.amb{background:var(--sheet);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.amb>header .name{flex:1;min-width:140px}
+.amb>header input{background:transparent;border:1px solid transparent;color:var(--sheet);font:600 1.15rem var(--display);letter-spacing:.06em;text-transform:uppercase;min-height:38px;padding:4px 6px}
+.amb>header input:focus{border-color:var(--vis)}
+.amb>header .meta{font:400 .85rem var(--body);letter-spacing:0;text-transform:none;opacity:.85}
+.amb>header .btn{color:var(--sheet);border-color:color-mix(in srgb,var(--sheet) 40%,transparent);background:transparent}
+.voce{border:1px solid var(--line);border-radius:5px;background:var(--sheet)}
+.voce>summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--tint);border-radius:5px}
+.voce[open]>summary{border-radius:5px 5px 0 0;border-bottom:1px solid var(--line)}
+.voce>summary::-webkit-details-marker{display:none}
+.voce>summary .t{font:700 1.05rem var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.voce>summary .s{font-size:.88rem;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voce>summary .s.ok{color:var(--ok);font-weight:600}
+.voce>summary::before{content:"▸";color:var(--ink-soft);transition:transform .12s}
+.voce[open]>summary::before{transform:rotate(90deg)}
+.vbody{padding:12px;display:flex;flex-direction:column;gap:12px}
+.opt{border:1px solid var(--line);border-radius:5px;padding:12px;display:flex;flex-direction:column;gap:10px;position:relative}
+.opt.chosen{border-color:var(--ok);background:var(--ok-tint)}
+.opt .oh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.opt .ol{font:700 1.3rem var(--display);color:var(--ink);width:2ch}
+.calc{font-size:.9rem;color:var(--ink-soft);display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--tint);border-radius:4px;padding:6px 10px}
+.calc b{font-variant-numeric:tabular-nums;color:var(--text)}
+.thumbs{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.th{border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--sheet);display:flex;flex-direction:column}
+.th img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--tint);cursor:pointer}
+.th .tb{display:flex;justify-content:space-between;gap:4px;padding:4px;flex-wrap:wrap}
+.th input{min-height:34px;padding:4px 6px;font-size:.85rem;border:0;border-top:1px solid var(--line);border-radius:0}
+.hide-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.empty{border:1.5px dashed var(--line);border-radius:5px;padding:16px;text-align:center;color:var(--muted)}
+.vlist{display:flex;flex-direction:column;gap:10px}
+.vis{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.vis .t{font:700 1.2rem var(--display);color:var(--ink);letter-spacing:.02em}
+.vis .m{font-size:.9rem;color:var(--muted)}
+@media (max-width:600px){.vis{grid-template-columns:1fr}}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--sheet);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));z-index:5}
+.bar .in{max-width:1000px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.bar .msg{margin-right:auto;font-size:.9rem;color:var(--muted);min-width:0;flex:1 1 220px}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{border:0;background:var(--field);color:var(--text);font:500 .9rem var(--body);padding:8px 12px;min-height:44px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.addrow select{width:auto;min-width:200px;flex:1 1 220px}
+.addrow input{flex:1 1 200px;width:auto}
+/* sketch editor */
+.sk{position:fixed;inset:0;background:#0B1119;z-index:20;display:flex;flex-direction:column}
+.sk .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;background:#17212E;color:#E6ECF3}
+.sk .tools .btn{background:#111A25;color:#E6ECF3;border-color:#2E3C4E}
+.sk .tools .btn[aria-pressed="true"]{outline:2px solid #F07A2A}
+.sk .tools input{max-width:260px;background:#111A25;color:#E6ECF3;border-color:#2E3C4E}
+.sk .sw{width:30px;height:30px;border-radius:50%;border:2px solid #E6ECF3;cursor:pointer}
+.sk .sw[aria-pressed="true"]{outline:3px solid #F07A2A;outline-offset:2px}
+.sk .stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:10px;touch-action:none}
+.sk canvas{background:#fff;touch-action:none;box-shadow:0 0 0 1px #2E3C4E}
+.sk .bottom{display:flex;gap:8px;justify-content:flex-end;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:#17212E}
+.pdfpick{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.pdfpick button{border:2px solid var(--line);border-radius:4px;padding:0;background:#fff;cursor:pointer}
+.pdfpick button[aria-pressed="true"]{border-color:var(--vis)}
+.pdfpick img{display:block;width:100%}
+.tot{font:700 1.4rem var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){.chip,.btn{transition:background .12s,border-color .12s}}
+</style>
+</head><body>
+
+<!-- ============ ARCHIVIO ============ -->
+<div class="wrap" id="vArch">
+  <div class="toprow">
+    <div><h1>Scelta Materiali</h1><div class="sub">Visite in showroom: ambienti, prodotti, foto e schizzi. Tutto resta salvato su questo tablet.</div></div>
+    <div class="btns">
+      <label class="btn" for="impIn">Apri file visita</label>
+      <input class="hide-file" id="impIn" type="file" accept=".json,application/json,text/plain">
+      <button class="btn primary" id="newVisit" type="button">+ Nuova visita</button>
+    </div>
+  </div>
+  <input id="search" type="search" placeholder="Cerca per cantiere, showroom, presenti…">
+  <div class="vlist" id="vlist"></div>
+</div>
+
+<!-- ============ VISITA ============ -->
+<div class="wrap" id="vEdit" hidden>
+  <div class="toprow">
+    <div><button class="btn ghost small" id="back" type="button">‹ Tutte le visite</button></div>
+    <div class="sub" id="saved"></div>
+  </div>
+
+  <section class="sheet">
+    <h2>Visita</h2>
+    <div class="body"><div class="grid">
+      <label class="f"><span class="lab">Cantiere</span><input id="v_cantiere" list="dlCantieri" placeholder="es. Casa Giorgia e Fil"></label>
+      <label class="f"><span class="lab">Showroom</span><input id="v_showroom" list="dlShowroom" placeholder="es. Gruppo Bea"></label>
+      <label class="f"><span class="lab">Data</span><input id="v_data" type="date"></label>
+      <label class="f"><span class="lab">Presenti</span><input id="v_presenti" placeholder="es. M. Arena, F. …, cliente"></label>
+    </div>
+    <label class="f"><span class="lab">Note generali</span><textarea id="v_note" rows="2"></textarea></label></div>
+  </section>
+
+  <section class="sheet">
+    <h2>Pavimentazione generale <small>vale per tutti gli ambienti che non hanno un pavimento proprio</small></h2>
+    <div class="body" id="genBox"></div>
+  </section>
+
+  <div id="ambBox" style="display:flex;flex-direction:column;gap:14px"></div>
+
+  <section class="sheet">
+    <h2>Aggiungi ambiente</h2>
+    <div class="body"><div class="addrow">
+      <select id="ambType"></select>
+      <input id="ambCustom" placeholder="Nome del nuovo ambiente" hidden>
+      <button class="btn primary" id="ambAdd" type="button">+ Aggiungi</button>
+    </div></div>
+  </section>
+
+  <section class="sheet">
+    <h2>Planimetrie e schizzi della visita <small>foto, PDF o foglio bianco su cui disegnare</small></h2>
+    <div class="body" id="visSk"></div>
+  </section>
+</div>
+
+<div class="bar" id="bar" hidden><div class="in">
+  <span class="msg" id="msg"></span>
+  <span class="seg" role="group" aria-label="Opzioni nel PDF"><button type="button" id="pdfChosen" aria-pressed="true">Solo scelte</button><button type="button" id="pdfAll" aria-pressed="false">Tutte le opzioni</button></span>
+  <button class="btn" id="expJson" type="button">Salva file visita</button>
+  <button class="btn" id="shareBtn" type="button" hidden>Condividi</button>
+  <button class="btn primary" id="expPdf" type="button">Esporta PDF</button>
+</div></div>
+
+<datalist id="dlCantieri"></datalist><datalist id="dlShowroom"></datalist><datalist id="dlMarca"></datalist><datalist id="dlModello"></datalist>
+<input class="hide-file" id="photoCam" type="file" accept="image/*" capture="environment">
+<input class="hide-file" id="photoGal" type="file" accept="image/*" multiple>
+<input class="hide-file" id="planIn" type="file" accept="image/*,application/pdf">
+<input class="hide-file" id="planCam" type="file" accept="image/*" capture="environment">
+
+<script src="jspdf.umd.min.js"></script>
+<script src="pdf.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const today = () => new Date().toISOString().slice(0, 10);
+const fmtD = (d) => (d ? d.split("-").reverse().join("/") : "");
+const num = (v) => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(n) ? n : null; };
+const f2 = (n) => n == null ? "" : n.toLocaleString("it-IT", { maximumFractionDigits: 2 });
+const eur = (n) => n == null ? "" : n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) e[k] = v; else if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+
+/* ================= MODELLO DATI ================= */
+const POSA = ["Dritta", "Sfalsata", "45°", "Spina di pesce"];
+const COMMON = [["marca", "Marca"], ["modello", "Modello / serie"], ["codice", "Codice articolo"], ["finitura", "Finitura / colore"], ["misure", "Misure / formato"], ["prezzo", "Prezzo unitario €", "decimal"], ["um", "U.M."], ["qta", "Quantità", "decimal"]];
+const T = {
+  "WC": { ch: [["tipo", "Installazione", ["Sospeso", "A terra"], 1]], ex: [["cassetta", "Cassetta di scarico (modello)"], ["placca", "Placca (modello)"]] },
+  "Bidet": { ch: [["tipo", "Installazione", ["Sospeso", "A terra"], 1]] },
+  "Lavabo": { ch: [["tipo", "Tipo", ["Da appoggio", "Sospeso", "Incasso", "Su mobile", "Freestanding"], 1]], ex: [["mobile", "Mobile / top"]] },
+  "Rubinetteria lavabo": { ch: [["tipo", "Tipo", ["Monocomando da piano", "A muro", "Alta per appoggio"], 1]] },
+  "Rubinetteria bidet": {},
+  "Rubinetteria doccia": { ch: [["comp", "Componenti", ["Soffione", "Doccino", "Miscelatore", "Deviatore", "Termostatico", "Asta saliscendi"], 0]] },
+  "Rubinetteria vasca": { ch: [["comp", "Componenti", ["Bordo vasca", "A muro", "Doccino", "Deviatore"], 0]] },
+  "Piatto doccia": { ex: [["materiale", "Materiale"]] },
+  "Vasca": { ch: [["tipo", "Tipo", ["Incasso", "Freestanding", "Angolare"], 1]] },
+  "Box doccia": { ch: [["tipo", "Tipologia", ["Battente", "Scorrevole", "Walk-in", "Pieghevole"], 1]], ex: [["vetro", "Vetro / profili"]] },
+  "Rivestimento": { calc: "riv", ch: [["posa", "Posa", POSA, 1]], ex: [["h", "Fino ad altezza (cm)", "decimal"], ["fuga", "Colore stucco / fuga"]] },
+  "Pavimento": { calc: "pav", ch: [["tipo", "Tipo", ["Gres", "Parquet", "Resina", "Marmo / pietra", "Vinilico / LVT", "Altro"], 1], ["posa", "Posa", POSA, 1]], ex: [["fuga", "Colore stucco / fuga"]] },
+  "Battiscopa": { calc: "bat", ex: [["hb", "Altezza (cm)"], ["materiale", "Materiale"]] },
+  "Lavello": { ch: [["tipo", "Tipo", ["Sottotop", "Filotop", "Da appoggio"], 1]] },
+  "Rubinetteria cucina": {},
+  "Lavatoio": {},
+  "Rubinetteria": {},
+  "Termoarredo": {},
+  "Specchio": {},
+  "Accessori": {},
+  "Porta": { ch: [["tipo", "Apertura", ["Battente", "Scorrevole interno muro", "Scorrevole esterno muro", "Filomuro"], 1]] },
+};
+const VOCI_LIST = Object.keys(T).filter((k) => k !== "Pavimento" && k !== "Battiscopa").concat(["Pavimento", "Battiscopa"]);
+const AMB = {
+  "Bagno": ["WC", "Bidet", "Lavabo", "Rubinetteria lavabo", "Rubinetteria bidet", "Rubinetteria doccia", "Piatto doccia", "Box doccia", "Rivestimento"],
+  "Cucina": ["Rivestimento", "Lavello", "Rubinetteria cucina"],
+  "Lavanderia": ["Lavatoio", "Rubinetteria", "Rivestimento"],
+};
+const AMB_TYPES = ["Bagno", "Cucina", "Soggiorno", "Camera", "Cameretta", "Studio", "Ingresso", "Corridoio / disimpegno", "Lavanderia", "Ripostiglio", "Terrazzo / esterni"];
+
+const newOpt = () => ({ id: uid(), scelta: false, f: {}, ch: {}, note: "", foto: [] });
+const newVoce = (tipo, titolo) => ({ id: uid(), tipo, titolo: titolo || tipo, ml: "", note: "", opz: [newOpt()] });
+function newAmb(tipo, nome) {
+  return { id: uid(), tipo, nome, sup: "", per: "", pavProprio: false, battiscopa: tipo !== "Bagno", note: "", voci: (AMB[tipo] || []).map((t) => newVoce(t)), pav: newVoce("Pavimento"), sk: [] };
+}
+function newVisit() {
+  return { id: uid(), cantiere: "", showroom: "Gruppo Bea", data: today(), presenti: "", note: "", pavGen: newVoce("Pavimento", "Pavimento generale"), batGen: newVoce("Battiscopa"), amb: [], sk: [], created: Date.now(), updated: Date.now() };
+}
+
+/* ================= STORAGE ================= */
+let DB = null;
+function idbOpen() {
+  return new Promise((res) => {
+    try {
+      const r = indexedDB.open("scelta-materiali", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("visits", { keyPath: "id" });
+      r.onsuccess = () => res((DB = r.result)); r.onerror = () => res(null);
+    } catch { res(null); }
+  });
+}
+const tx = (mode, fn) => new Promise((res) => { try { const t = DB.transaction("visits", mode); const st = t.objectStore("visits"); const q = fn(st); t.oncomplete = () => res(q && q.result !== undefined ? q.result : true); t.onerror = () => res(null); } catch { res(null); } });
+const allVisits = async () => (DB ? (await tx("readonly", (s) => s.getAll())) || [] : MEM);
+const putVisit = (v) => (DB ? tx("readwrite", (s) => s.put(v)) : (MEM = MEM.filter((x) => x.id !== v.id).concat([v]), Promise.resolve(true)));
+const delVisit = (id) => (DB ? tx("readwrite", (s) => s.delete(id)) : (MEM = MEM.filter((x) => x.id !== id), Promise.resolve(true)));
+let MEM = [];
+
+let V = null; // visita aperta
+let saveT;
+function save() {
+  if (!V) return;
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    V.updated = Date.now();
+    const ok = await putVisit(JSON.parse(JSON.stringify(V)));
+    $("#saved").textContent = ok && DB ? "Salvato alle " + new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "Attenzione: salvataggio non disponibile su questo dispositivo";
+  }, 450);
+}
+
+function msg(t, kind) { const m = $("#msg"); m.textContent = t || ""; m.className = "msg" + (kind ? " " + kind : ""); }
+// two-tap confirm for destructive buttons
+function armed(btn, label, fn) {
+  btn.onclick = () => {
+    if (btn.dataset.armed) { clearTimeout(btn._t); fn(); return; }
+    btn.dataset.armed = "1"; const old = btn.textContent; btn.textContent = label; btn.classList.add("armed");
+    btn._t = setTimeout(() => { delete btn.dataset.armed; btn.textContent = old; btn.classList.remove("armed"); }, 4000);
+  };
+}
+
+/* ================= ARCHIVIO ================= */
+async function showArchive() {
+  V = null; $("#vEdit").hidden = true; $("#bar").hidden = true; $("#vArch").hidden = false; scrollTo(0, 0);
+  const list = (await allVisits()).sort((a, b) => (b.data || "").localeCompare(a.data || "") || b.updated - a.updated);
+  const q = $("#search").value.trim().toLowerCase();
+  const box = $("#vlist"); box.innerHTML = "";
+  const shown = list.filter((v) => !q || [v.cantiere, v.showroom, v.presenti, fmtD(v.data)].join(" ").toLowerCase().includes(q));
+  if (!list.length) { box.append(h("div", { class: "empty" }, "Nessuna visita salvata. Tocca «+ Nuova visita» per iniziare, oppure apri un file visita ricevuto da un collega.")); return; }
+  if (!shown.length) { box.append(h("div", { class: "empty" }, "Nessuna visita corrisponde alla ricerca.")); return; }
+  shown.forEach((v) => {
+    const nA = v.amb.length, nS = countChosen(v);
+    const del = h("button", { class: "btn small ghost", type: "button" }, "Elimina");
+    armed(del, "Tocca per eliminare", async () => { await delVisit(v.id); showArchive(); });
+    box.append(h("div", { class: "vis" },
+      h("div", {}, h("div", { class: "t" }, v.cantiere || "Cantiere senza nome"), h("div", { class: "m" }, `${v.showroom || "Showroom"} · ${fmtD(v.data)}${v.presenti ? " · " + v.presenti : ""} · ${nA} ambient${nA === 1 ? "e" : "i"} · ${nS} scelte`)),
+      h("div", { class: "btns" },
+        h("button", { class: "btn small primary", type: "button", onclick: () => openVisit(v) }, "Apri"),
+        h("button", { class: "btn small", type: "button", onclick: () => duplicate(v) }, "Duplica"),
+        del)));
+  });
+}
+function countChosen(v) { let n = 0; allVoci(v).forEach(({ voce }) => voce.opz.some((o) => o.scelta) && n++); return n; }
+function allVoci(v) {
+  const out = [{ amb: null, voce: v.pavGen, gen: true }, { amb: null, voce: v.batGen, gen: true }];
+  v.amb.forEach((a) => { if (a.pavProprio) out.push({ amb: a, voce: a.pav }); a.voci.forEach((voce) => out.push({ amb: a, voce })); });
+  return out;
+}
+async function duplicate(v) {
+  const c = JSON.parse(JSON.stringify(v));
+  c.id = uid(); c.data = today(); c.created = c.updated = Date.now(); c.showroom = v.showroom;
+  await putVisit(c); openVisit(c); msg("Visita duplicata con la data di oggi. Cambia showroom o presenti se serve.", "ok");
+}
+$("#newVisit").onclick = async () => { const v = newVisit(); await putVisit(v); openVisit(v); };
+$("#search").oninput = () => showArchive();
+$("#back").onclick = () => { clearTimeout(saveT); if (V) putVisit(JSON.parse(JSON.stringify(V))).then(showArchive); else showArchive(); };
+
+$("#impIn").onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const v = data && data.app === "scelta-materiali" ? data.visita : null;
+    if (!v || !Array.isArray(v.amb)) throw 0;
+    const exists = (await allVisits()).some((x) => x.id === v.id);
+    if (exists) v.id = uid();
+    await putVisit(v); openVisit(v); msg("Visita importata dal file " + f.name + (exists ? " come copia (l'originale era già sul tablet)" : ""), "ok");
+  } catch { alertArch("Questo file non è una visita di Scelta Materiali."); }
+};
+function alertArch(t) { const b = $("#vlist"); b.prepend(h("div", { class: "empty", style: "color:var(--bad);border-color:var(--bad)" }, t)); }
+
+/* ================= EDITOR ================= */
+const OPEN = new Set();
+async function openVisit(v) {
+  V = v; $("#vArch").hidden = true; $("#vEdit").hidden = false; $("#bar").hidden = false; $("#shareBtn").hidden = true; msg("");
+  scrollTo(0, 0); await refreshLists(); renderEdit();
+}
+async function refreshLists() {
+  const all = await allVisits();
+  const fill = (id, vals) => { const d = $(id); d.innerHTML = ""; [...new Set(vals.filter(Boolean))].sort().forEach((x) => d.append(h("option", { value: x }))); };
+  fill("#dlCantieri", all.map((v) => v.cantiere));
+  fill("#dlShowroom", ["Gruppo Bea", ...all.map((v) => v.showroom)]);
+  const m = [], mo = [];
+  all.forEach((v) => allVoci(v).forEach(({ voce }) => voce.opz.forEach((o) => { m.push(o.f.marca); mo.push(o.f.modello); })));
+  fill("#dlMarca", m); fill("#dlModello", mo);
+}
+function bindTop() {
+  [["cantiere"], ["showroom"], ["data"], ["presenti"], ["note"]].forEach(([k]) => { const el = $("#v_" + k); el.value = V[k] || ""; el.oninput = () => { V[k] = el.value; save(); }; });
+}
+function renderEdit() {
+  bindTop();
+  // general floor
+  const g = $("#genBox"); g.innerHTML = "";
+  g.append(renderVoce(V.pavGen, null, { fixed: true, open: true }), renderVoce(V.batGen, null, { fixed: true }));
+  // rooms
+  const box = $("#ambBox"); box.innerHTML = "";
+  V.amb.forEach((a, i) => box.append(renderAmb(a, i)));
+  // add room select
+  const sel = $("#ambType"); sel.innerHTML = "";
+  AMB_TYPES.forEach((t) => sel.append(h("option", { value: t }, t)));
+  sel.append(h("option", { value: "__new" }, "Nuovo ambiente…"));
+  sel.onchange = () => { $("#ambCustom").hidden = sel.value !== "__new"; if (sel.value === "__new") $("#ambCustom").focus(); };
+  $("#ambCustom").hidden = true; $("#ambCustom").value = "";
+  renderSk(V.sk, $("#visSk"));
+}
+$("#ambAdd").onclick = () => {
+  const t = $("#ambType").value;
+  let tipo = t, nome = t;
+  if (t === "__new") { nome = $("#ambCustom").value.trim(); if (!nome) { $("#ambCustom").focus(); msg("Scrivi il nome del nuovo ambiente.", "err"); return; } tipo = nome; }
+  const same = V.amb.filter((a) => a.tipo === tipo).length;
+  if (same || t === "Bagno" || t === "Camera") nome = `${nome} ${same + 1}`;
+  if (same === 1) { const first = V.amb.find((a) => a.tipo === tipo); if (first && first.nome === tipo) first.nome = tipo + " 1"; }
+  const a = newAmb(tipo, nome); V.amb.push(a); OPEN.add(a.id); save(); renderEdit();
+  msg(nome + " aggiunto.", "ok");
+  setTimeout(() => document.getElementById("amb-" + a.id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+};
+
+function field(label, val, on, o = {}) {
+  const i = h("input", { value: val || "", inputmode: o.mode, type: o.type, list: o.list, placeholder: o.ph });
+  i.value = val || "";
+  i.oninput = () => { on(i.value); save(); o.after && o.after(); };
+  return h("label", { class: "f" + (o.cls ? " " + o.cls : "") }, h("span", { class: "lab" }, label), i);
+}
+function chipGroup(label, opts, single, get, set, after) {
+  const box = h("div", { class: "chips" });
+  const paint = () => box.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", single ? get() === c.dataset.v : (get() || []).includes(c.dataset.v)));
+  opts.forEach((o) => {
+    const b = h("button", { type: "button", class: "chip" + (single ? " single" : ""), "data-v": o }, o);
+    b.onclick = () => {
+      if (single) set(get() === o ? "" : o); else { const cur = get() || []; set(cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o]); }
+      paint(); save(); after && after();
+    };
+    box.append(b);
+  });
+  paint();
+  return h("div", { style: "display:flex;flex-direction:column;gap:6px;min-width:0" }, h("span", { class: "lab" }, label), box);
+}
+
+function renderAmb(a, idx) {
+  const isOpen = OPEN.has(a.id);
+  const meta = h("span", { class: "meta" });
+  const paintMeta = () => { meta.textContent = [a.tipo !== a.nome.replace(/ \d+$/, "") ? a.tipo : "", a.sup ? f2(num(a.sup)) + " m²" : "", a.per ? "perimetro " + f2(num(a.per)) + " m" : ""].filter(Boolean).join(" · "); };
+  paintMeta();
+  const nameIn = h("input", { value: a.nome, "aria-label": "Nome ambiente" }); nameIn.value = a.nome;
+  nameIn.oninput = () => { a.nome = nameIn.value; save(); };
+  const body = h("div", { class: "body" }); body.hidden = !isOpen;
+  const tog = h("button", { class: "btn small", type: "button" }, isOpen ? "Chiudi" : "Apri");
+  tog.onclick = () => { body.hidden = !body.hidden; tog.textContent = body.hidden ? "Apri" : "Chiudi"; body.hidden ? OPEN.delete(a.id) : OPEN.add(a.id); };
+  const del = h("button", { class: "btn small", type: "button" }, "Elimina");
+  armed(del, "Conferma", () => { V.amb = V.amb.filter((x) => x !== a); save(); renderEdit(); });
+  const dup = h("button", { class: "btn small", type: "button" }, "Duplica");
+  dup.onclick = () => { const c = JSON.parse(JSON.stringify(a)); c.id = uid(); c.nome = a.nome.replace(/\d+$/, "").trim() + " " + (V.amb.filter((x) => x.tipo === a.tipo).length + 1); c.voci.forEach((v) => { v.id = uid(); v.opz.forEach((o) => (o.id = uid())); }); V.amb.splice(idx + 1, 0, c); OPEN.add(c.id); save(); renderEdit(); };
+  const up = h("button", { class: "btn small", type: "button", "aria-label": "Sposta su" }, "↑");
+  up.disabled = idx === 0; up.onclick = () => { V.amb.splice(idx - 1, 0, V.amb.splice(idx, 1)[0]); save(); renderEdit(); };
+
+  // body
+  const vociBox = h("div", { style: "display:flex;flex-direction:column;gap:10px" });
+  const paintVoci = () => {
+    vociBox.innerHTML = "";
+    if (a.pavProprio) vociBox.append(renderVoce(a.pav, a, { fixed: true }));
+    a.voci.forEach((v, i) => vociBox.append(renderVoce(v, a, { idx: i })));
+    if (!a.voci.length && !a.pavProprio) vociBox.append(h("div", { class: "empty" }, "Nessuna voce. Il pavimento è quello generale; aggiungi qui sotto le voci di questo ambiente."));
+  };
+  paintVoci();
+  const flags = h("div", { class: "chips" });
+  const fl = (label, k, after) => { const b = h("button", { type: "button", class: "chip" }, label); b.setAttribute("aria-pressed", !!a[k]); b.onclick = () => { a[k] = !a[k]; b.setAttribute("aria-pressed", a[k]); save(); after && after(); }; return b; };
+  flags.append(fl("Pavimento diverso dal generale", "pavProprio", () => { if (!a.pav) a.pav = newVoce("Pavimento"); paintVoci(); }), fl("Con battiscopa", "battiscopa", () => paintVoci()));
+
+  const vsel = h("select", { "aria-label": "Voce da aggiungere" });
+  VOCI_LIST.forEach((t) => vsel.append(h("option", { value: t }, t)));
+  vsel.append(h("option", { value: "__free" }, "Voce libera…"));
+  const vfree = h("input", { placeholder: "Nome della voce (es. Mensola, Doccia esterna)" }); vfree.hidden = true;
+  vsel.onchange = () => { vfree.hidden = vsel.value !== "__free"; };
+  const vadd = h("button", { class: "btn", type: "button" }, "+ Aggiungi voce");
+  vadd.onclick = () => {
+    let tipo = vsel.value, titolo = tipo;
+    if (tipo === "__free") { titolo = vfree.value.trim(); if (!titolo) { vfree.focus(); return; } tipo = "Libera"; }
+    const n = a.voci.filter((v) => v.tipo === tipo && tipo !== "Libera").length;
+    if (n) titolo = `${titolo} ${n + 1}`;
+    const v = newVoce(tipo, titolo); a.voci.push(v); OPEN.add(v.id); vfree.value = ""; save(); paintVoci();
+  };
+  const skBox = h("div", {});
+  body.append(
+    h("div", { class: "grid tight" },
+      field("Superficie (m²)", a.sup, (x) => (a.sup = x), { mode: "decimal", after: () => { paintMeta(); paintCalcs(); } }),
+      field("Perimetro (m)", a.per, (x) => (a.per = x), { mode: "decimal", after: () => { paintMeta(); paintCalcs(); } })),
+    flags, vociBox,
+    h("div", { class: "addrow" }, vsel, vfree, vadd),
+    h("label", { class: "f" }, h("span", { class: "lab" }, "Note ambiente"), (() => { const t = h("textarea", { rows: 2 }); t.value = a.note || ""; t.oninput = () => { a.note = t.value; save(); }; return t; })()),
+    h("div", { style: "display:flex;flex-direction:column;gap:8px" }, h("span", { class: "lab" }, "Schizzi e appunti dell'ambiente"), skBox),
+  );
+  renderSk(a.sk, skBox);
+  return h("article", { class: "amb", id: "amb-" + a.id },
+    h("header", {}, h("span", { class: "name" }, nameIn), meta, h("span", { class: "btns" }, up, dup, del, tog)), body);
+}
+
+/* ---------- quantità calcolate ---------- */
+const CALCS = new Set();
+function paintCalcs() { CALCS.forEach((fn) => { if (!fn.el.isConnected) CALCS.delete(fn); else fn(); }); }
+function need(voce, amb, o) {
+  const t = T[voce.tipo]; if (!t || !t.calc) return null;
+  if (t.calc === "pav") {
+    if (amb) { const s = num(amb.sup); return s == null ? null : { q: s, um: "m²", how: "superficie ambiente" }; }
+    const list = V.amb.filter((a) => !a.pavProprio && num(a.sup) != null); if (!list.length) return null;
+    return { q: list.reduce((x, a) => x + num(a.sup), 0), um: "m²", how: "somma superfici di " + list.map((a) => a.nome).join(", ") };
+  }
+  if (t.calc === "bat") {
+    const list = V.amb.filter((a) => a.battiscopa && num(a.per) != null); if (!list.length) return null;
+    return { q: list.reduce((x, a) => x + num(a.per), 0), um: "m", how: "somma perimetri ambienti con battiscopa" };
+  }
+  if (t.calc === "riv") {
+    const ml = num(voce.ml) ?? (amb ? num(amb.per) : null), hh = num(o.f.h);
+    if (ml == null || hh == null) return null;
+    return { q: (ml * hh) / 100, um: "m²", how: `${f2(ml)} m di parete × ${f2(hh)} cm` };
+  }
+  return null;
+}
+function calcLine(voce, amb, o, onUse) {
+  const box = h("div", { class: "calc" });
+  const fn = () => {
+    const n = need(voce, amb, o); box.innerHTML = "";
+    if (!n) { box.hidden = true; return; }
+    box.hidden = false;
+    const sf = n.q * 1.1;
+    const use = h("button", { class: "btn small", type: "button" }, "Usa come quantità");
+    use.onclick = () => onUse(Math.ceil(sf * 100) / 100, n.um);
+    box.append(h("span", {}, "Fabbisogno: ", h("b", {}, f2(n.q) + " " + n.um), " · con 10% sfrido ", h("b", {}, f2(sf) + " " + n.um), h("span", { style: "opacity:.75" }, " (" + n.how + ")")), use);
+  };
+  fn.el = box; CALCS.add(fn); fn();
+  return box;
+}
+
+/* ---------- voce + opzioni ---------- */
+function voceSummary(voce) {
+  const c = voce.opz.find((o) => o.scelta);
+  if (c) return { t: "✓ " + (["marca", "modello", "finitura"].map((k) => c.f[k]).filter(Boolean).join(" · ") || "Opzione scelta"), ok: 1 };
+  const n = voce.opz.filter((o) => Object.values(o.f).some(Boolean) || o.foto.length).length;
+  return { t: n ? `${n} opzion${n === 1 ? "e" : "i"} · da scegliere` : "Da compilare" };
+}
+function renderVoce(voce, amb, o = {}) {
+  const d = h("details", { class: "voce" });
+  d.open = o.open || OPEN.has(voce.id);
+  d.ontoggle = () => (d.open ? OPEN.add(voce.id) : OPEN.delete(voce.id));
+  const s = h("span", { class: "s" });
+  const paintS = () => { const x = voceSummary(voce); s.textContent = x.t; s.className = "s" + (x.ok ? " ok" : ""); };
+  paintS();
+  const title = voce.tipo === "Pavimento" && amb ? "Pavimento " + (amb.nome || "") : voce.titolo;
+  d.append(h("summary", {}, h("span", { class: "t" }, title), s));
+  const body = h("div", { class: "vbody" });
+  if (voce.tipo === "Battiscopa" && !amb) body.append(h("div", { class: "sub" }, "Il fabbisogno somma i perimetri degli ambienti con «Con battiscopa» attivo."));
+  if (T[voce.tipo]?.calc === "riv") body.append(h("div", { class: "grid tight" }, field("Metri di parete da rivestire", voce.ml, (x) => (voce.ml = x), { mode: "decimal", ph: amb && amb.per ? "perimetro: " + amb.per : "", after: paintCalcs })));
+  const opts = h("div", { style: "display:flex;flex-direction:column;gap:10px" });
+  const paintOpts = () => { opts.innerHTML = ""; voce.opz.forEach((op, i) => opts.append(renderOpt(voce, amb, op, i, paintOpts, paintS))); };
+  paintOpts();
+  const addO = h("button", { class: "btn small", type: "button" }, "+ Altra opzione");
+  addO.onclick = () => { voce.opz.push(newOpt()); save(); paintOpts(); paintS(); };
+  const btns = h("div", { class: "btns" }, addO);
+  if (!o.fixed) {
+    const dupV = h("button", { class: "btn small", type: "button" }, "Aggiungi un altro pezzo uguale");
+    dupV.onclick = () => { const list = amb.voci; const n = list.filter((v) => v.tipo === voce.tipo).length; const nv = newVoce(voce.tipo, (voce.titolo.replace(/ \d+$/, "")) + " " + (n + 1)); list.splice(list.indexOf(voce) + 1, 0, nv); OPEN.add(nv.id); save(); renderEdit(); };
+    const ren = h("button", { class: "btn small ghost", type: "button" }, "Rinomina");
+    ren.onclick = () => { const t = body.querySelector(".ren"); if (t) { t.remove(); return; } const i = h("input", { class: "ren", value: voce.titolo }); i.value = voce.titolo; i.oninput = () => { voce.titolo = i.value; d.querySelector("summary .t").textContent = i.value; save(); }; btns.after(i); i.focus(); };
+    const delV = h("button", { class: "btn small ghost", type: "button" }, "Elimina voce");
+    armed(delV, "Conferma", () => { amb.voci = amb.voci.filter((v) => v !== voce); save(); renderEdit(); });
+    btns.append(dupV, ren, delV);
+  }
+  const note = h("textarea", { rows: 2, placeholder: "Note sulla voce" }); note.value = voce.note || ""; note.oninput = () => { voce.note = note.value; save(); };
+  body.append(opts, btns, note);
+  d.append(body);
+  return d;
+}
+const LET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+function renderOpt(voce, amb, op, i, repaint, paintS) {
+  const t = T[voce.tipo] || {};
+  const card = h("div", { class: "opt" + (op.scelta ? " chosen" : "") });
+  const pick = h("button", { type: "button", class: "chip" }, op.scelta ? "Scelta" : "Scegli questa");
+  pick.setAttribute("aria-pressed", op.scelta);
+  pick.onclick = () => { const was = op.scelta; voce.opz.forEach((x) => (x.scelta = false)); op.scelta = !was; save(); repaint(); paintS(); };
+  const del = h("button", { class: "btn small ghost", type: "button" }, "Elimina opzione");
+  armed(del, "Conferma", () => { voce.opz.splice(i, 1); if (!voce.opz.length) voce.opz.push(newOpt()); save(); repaint(); paintS(); });
+  card.append(h("div", { class: "oh" }, h("span", { class: "ol" }, LET[i] || i + 1), pick, h("span", { style: "flex:1" }), voce.opz.length > 1 ? del : null));
+  const imp = h("span", {});
+  const paintImp = () => { const p = num(op.f.prezzo), q = num(op.f.qta); imp.textContent = p != null && q != null ? "Importo: " + eur(p * q) : ""; };
+  const grid = h("div", { class: "grid tight" });
+  const qIn = {};
+  COMMON.forEach(([k, label, mode]) => {
+    const fl = field(label, op.f[k], (x) => { op.f[k] = x; if (["marca", "modello", "finitura"].includes(k)) paintS(); }, { mode, list: k === "marca" ? "dlMarca" : k === "modello" ? "dlModello" : null, after: k === "prezzo" || k === "qta" ? paintImp : null });
+    qIn[k] = fl.querySelector("input"); grid.append(fl);
+  });
+  (t.ex || []).forEach(([k, label, mode]) => grid.append(field(label, op.f[k], (x) => (op.f[k] = x), { mode, after: k === "h" ? paintCalcs : null })));
+  card.append(grid);
+  (t.ch || []).forEach(([k, label, opts, single]) => card.append(chipGroup(label, opts, !!single, () => op.ch[k], (v) => (op.ch[k] = v))));
+  if (t.calc) card.append(calcLine(voce, amb, op, (q, um) => { op.f.qta = String(q).replace(".", ","); op.f.um = um; qIn.qta.value = op.f.qta; qIn.um.value = um; paintImp(); save(); }));
+  paintImp();
+  const note = h("input", { placeholder: "Note su questa opzione" }); note.value = op.note || ""; note.oninput = () => { op.note = note.value; save(); };
+  card.append(h("div", { class: "btns" }, imp), note);
+  // photos
+  const th = h("div", { class: "thumbs" });
+  const paintTh = () => {
+    th.innerHTML = "";
+    op.foto.forEach((p, j) => {
+      const del = h("button", { class: "btn small ghost", type: "button" }, "Elimina");
+      armed(del, "Conferma", () => { op.foto.splice(j, 1); save(); paintTh(); });
+      const cap = h("input", { placeholder: "Didascalia" }); cap.value = p.cap || ""; cap.oninput = () => { p.cap = cap.value; save(); };
+      const img = h("img", { src: p.flat || p.src, alt: "Foto prodotto" });
+      const draw = h("button", { class: "btn small ghost", type: "button" }, "Disegna");
+      draw.onclick = () => openSketch(p, () => { save(); paintTh(); });
+      th.append(h("div", { class: "th" }, img, cap, h("div", { class: "tb" }, draw, del)));
+    });
+  };
+  paintTh();
+  const cam = h("button", { class: "btn small primary", type: "button" }, "Scatta foto");
+  cam.onclick = () => pickPhotos("#photoCam", op, paintTh);
+  const gal = h("button", { class: "btn small", type: "button" }, "Dalla galleria");
+  gal.onclick = () => pickPhotos("#photoGal", op, paintTh);
+  card.append(h("div", { class: "btns" }, cam, gal), th);
+  return card;
+}
+
+/* ---------- immagini ---------- */
+function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+async function compress(file, max = 1600, q = 0.8) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * k), hh = Math.round(img.naturalHeight * k);
+    const c = document.createElement("canvas"); c.width = w; c.height = hh;
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, w, hh); x.drawImage(img, 0, 0, w, hh);
+    return { id: uid(), src: c.toDataURL("image/jpeg", q), w, h: hh, cap: "", strokes: [] };
+  } finally { URL.revokeObjectURL(url); }
+}
+let photoTarget = null;
+function pickPhotos(sel, op, after) { photoTarget = { op, after }; $(sel).click(); }
+async function onPhotos(e) {
+  const files = [...e.target.files]; e.target.value = "";
+  if (!photoTarget) return;
+  for (const f of files) { try { photoTarget.op.foto.push(await compress(f)); } catch { msg("Una foto non è stata letta.", "err"); } }
+  save(); photoTarget.after();
+}
+$("#photoCam").onchange = onPhotos; $("#photoGal").onchange = onPhotos;
+
+/* ---------- schizzi / planimetrie ---------- */
+let skTarget = null;
+function renderSk(list, box) {
+  box.innerHTML = "";
+  const th = h("div", { class: "thumbs" });
+  list.forEach((p, j) => {
+    const del = h("button", { class: "btn small ghost", type: "button" }, "Elimina");
+    armed(del, "Conferma", () => { list.splice(j, 1); save(); renderSk(list, box); });
+    const cap = h("input", { placeholder: "Titolo (es. Pianta piano terra)" }); cap.value = p.cap || ""; cap.oninput = () => { p.cap = cap.value; save(); };
+    const img = h("img", { src: p.flat || p.src, alt: p.cap || "Schizzo" });
+    const ed = () => openSketch(p, () => { save(); renderSk(list, box); });
+    img.onclick = ed;
+    th.append(h("div", { class: "th" }, img, cap, h("div", { class: "tb" }, h("button", { class: "btn small ghost", type: "button", onclick: ed }, "Disegna"), del)));
+  });
+  const b1 = h("button", { class: "btn small primary", type: "button" }, "Foto di una planimetria");
+  b1.onclick = () => { skTarget = { list, box }; $("#planCam").click(); };
+  const b2 = h("button", { class: "btn small", type: "button" }, "Carica immagine o PDF");
+  b2.onclick = () => { skTarget = { list, box }; $("#planIn").click(); };
+  const b3 = h("button", { class: "btn small", type: "button" }, "Foglio quadrettato");
+  b3.onclick = () => { const p = blankSheet(); list.push(p); save(); renderSk(list, box); openSketch(p, () => { save(); renderSk(list, box); }); };
+  box.append(h("div", { class: "btns" }, b1, b2, b3), list.length ? th : h("div", { class: "sub" }, "Puoi disegnare con la penna sopra planimetrie, foto o su un foglio quadrettato."));
+}
+function blankSheet() {
+  const w = 1600, hh = 1131, c = document.createElement("canvas"); c.width = w; c.height = hh;
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, w, hh); x.strokeStyle = "#DCE3EC"; x.lineWidth = 1;
+  for (let i = 40; i < w; i += 40) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, hh); x.stroke(); }
+  for (let i = 40; i < hh; i += 40) { x.beginPath(); x.moveTo(0, i); x.lineTo(w, i); x.stroke(); }
+  return { id: uid(), src: c.toDataURL("image/jpeg", 0.85), w, h: hh, cap: "Appunti", strokes: [] };
+}
+async function onPlan(e) {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f || !skTarget) return;
+  const { list, box } = skTarget;
+  try {
+    if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) { await pickPdfPages(f, list, box); return; }
+    const p = await compress(f, 2000, 0.85); p.cap = f.name.replace(/\.[^.]+$/, ""); list.push(p); save(); renderSk(list, box);
+    openSketch(p, () => { save(); renderSk(list, box); });
+  } catch { msg("Il file non è stato letto. Prova con un'immagine JPG/PNG o un PDF.", "err"); }
+}
+$("#planIn").onchange = onPlan; $("#planCam").onchange = onPlan;
+async function pickPdfPages(file, list, box) {
+  if (!window.pdfjsLib) { msg("Lettore PDF non disponibile.", "err"); return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+  msg("Leggo il PDF…");
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const pages = [];
+  const n = Math.min(pdf.numPages, 30);
+  for (let i = 1; i <= n; i++) {
+    const pg = await pdf.getPage(i); const vp0 = pg.getViewport({ scale: 1 });
+    const scale = Math.min(2200 / Math.max(vp0.width, vp0.height), 3); const vp = pg.getViewport({ scale });
+    const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+    await pg.render({ canvasContext: x, viewport: vp }).promise;
+    pages.push({ id: uid(), src: c.toDataURL("image/jpeg", 0.85), w: c.width, h: c.height, cap: file.name.replace(/\.pdf$/i, "") + (pdf.numPages > 1 ? " - pag. " + i : ""), strokes: [] });
+  }
+  msg("");
+  if (pages.length === 1) { list.push(pages[0]); save(); renderSk(list, box); openSketch(pages[0], () => { save(); renderSk(list, box); }); return; }
+  // let the user pick pages
+  const sel = new Set([0]);
+  const grid = h("div", { class: "pdfpick" });
+  pages.forEach((p, i) => { const b = h("button", { type: "button", "aria-pressed": i === 0 }, h("img", { src: p.src, alt: "Pagina " + (i + 1) })); b.onclick = () => { sel.has(i) ? sel.delete(i) : sel.add(i); b.setAttribute("aria-pressed", sel.has(i)); }; grid.append(b); });
+  const ok = h("button", { class: "btn small primary", type: "button" }, "Aggiungi le pagine selezionate");
+  const no = h("button", { class: "btn small ghost", type: "button" }, "Annulla");
+  const panel = h("div", { style: "display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:5px;padding:10px" }, h("span", { class: "lab" }, `Scegli le pagine del PDF (${pdf.numPages} pagine${pdf.numPages > 30 ? ", mostrate le prime 30" : ""})`), grid, h("div", { class: "btns" }, ok, no));
+  ok.onclick = () => { [...sel].sort((a, b) => a - b).forEach((i) => list.push(pages[i])); save(); renderSk(list, box); };
+  no.onclick = () => renderSk(list, box);
+  box.prepend(panel);
+}
+
+/* sketch editor (strokes in image pixel coordinates) */
+const COLORS = ["#D62828", "#1D4ED8", "#111111", "#E8650F", "#15803D"];
+function openSketch(p, done) {
+  let color = COLORS[0], size = 4, mode = "pen";
+  const strokes = JSON.parse(JSON.stringify(p.strokes || []));
+  const cv = h("canvas"); const ctx = cv.getContext("2d");
+  const capIn = h("input", { placeholder: "Titolo", value: p.cap || "" }); capIn.value = p.cap || "";
+  const sw = COLORS.map((c) => { const b = h("button", { type: "button", class: "sw", style: "background:" + c, "aria-label": "Colore", "aria-pressed": c === color }); b.onclick = () => { color = c; mode = "pen"; paintTools(); }; return b; });
+  const szB = [[3, "Fine"], [7, "Medio"], [14, "Grosso"]].map(([s, l]) => { const b = h("button", { type: "button", class: "btn small", "aria-pressed": s === 7 }, l); b.onclick = () => { size = s; paintTools(); }; return b; });
+  size = 7;
+  const rub = h("button", { type: "button", class: "btn small" }, "Gomma"); rub.onclick = () => { mode = mode === "erase" ? "pen" : "erase"; paintTools(); };
+  const undo = h("button", { type: "button", class: "btn small" }, "Annulla tratto"); undo.onclick = () => { strokes.pop(); redraw(); };
+  const clr = h("button", { type: "button", class: "btn small" }, "Cancella tutto"); armed(clr, "Conferma", () => { strokes.length = 0; redraw(); });
+  const paintTools = () => { sw.forEach((b, i) => b.setAttribute("aria-pressed", mode === "pen" && COLORS[i] === color)); szB.forEach((b, i) => b.setAttribute("aria-pressed", [3, 7, 14][i] === size)); rub.setAttribute("aria-pressed", mode === "erase"); };
+  const stage = h("div", { class: "stage" }, cv);
+  const cancel = h("button", { type: "button", class: "btn" }, "Esci senza salvare");
+  const ok = h("button", { type: "button", class: "btn primary" }, "Salva disegno");
+  const root = h("div", { class: "sk", role: "dialog", "aria-label": "Disegno" }, h("div", { class: "tools" }, capIn, ...sw, ...szB, rub, undo, clr), stage, h("div", { class: "bottom" }, cancel, ok));
+  document.body.append(root); document.body.style.overflow = "hidden";
+  let img = null, scale = 1;
+  const fit = () => {
+    const W = stage.clientWidth - 20, H = stage.clientHeight - 20;
+    scale = Math.min(W / p.w, H / p.h);
+    const r = window.devicePixelRatio || 1;
+    cv.style.width = p.w * scale + "px"; cv.style.height = p.h * scale + "px";
+    cv.width = Math.round(p.w * scale * r); cv.height = Math.round(p.h * scale * r);
+    redraw();
+  };
+  const drawStroke = (c, s, k) => {
+    c.save();
+    c.globalCompositeOperation = s.e ? "destination-out" : "source-over";
+    c.strokeStyle = s.c; c.lineWidth = s.w * k; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); s.pts.forEach(([x, y], i) => (i ? c.lineTo(x * k, y * k) : c.moveTo(x * k, y * k)));
+    if (s.pts.length === 1) c.lineTo(s.pts[0][0] * k + 0.1, s.pts[0][1] * k);
+    c.stroke(); c.restore();
+  };
+  // ink layer separate so eraser removes only ink
+  const ink = document.createElement("canvas");
+  const redraw = () => {
+    const k = cv.width / p.w;
+    ink.width = cv.width; ink.height = cv.height;
+    const ic = ink.getContext("2d"); strokes.forEach((s) => drawStroke(ic, s, k));
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (img) ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    ctx.drawImage(ink, 0, 0);
+  };
+  loadImg(p.src).then((i) => { img = i; fit(); });
+  const onR = () => fit(); window.addEventListener("resize", onR);
+  let cur = null;
+  const pos = (e) => { const b = cv.getBoundingClientRect(); return [((e.clientX - b.left) / b.width) * p.w, ((e.clientY - b.top) / b.height) * p.h]; };
+  let penSeen = false;
+  cv.onpointerdown = (e) => { if (e.pointerType === "pen") penSeen = true; if (cur || (penSeen && e.pointerType === "touch") || (e.pointerType === "touch" && e.isPrimary === false)) return; cv.setPointerCapture(e.pointerId); cur = { c: color, w: (mode === "erase" ? size * 3 : size) / scale * 0.9, e: mode === "erase" ? 1 : 0, pts: [pos(e)] }; strokes.push(cur); redraw(); };
+  cv.onpointermove = (e) => { if (!cur) return; (e.getCoalescedEvents ? e.getCoalescedEvents() : [e]).forEach((ev) => cur.pts.push(pos(ev))); redraw(); };
+  const end = () => { if (cur) cur.pts = cur.pts.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]); cur = null; };
+  cv.onpointerup = end; cv.onpointercancel = end;
+  const close = () => { window.removeEventListener("resize", onR); root.remove(); document.body.style.overflow = ""; };
+  cancel.onclick = close;
+  ok.onclick = async () => {
+    p.strokes = strokes; p.cap = capIn.value;
+    if (strokes.length) {
+      const c = document.createElement("canvas"); c.width = p.w; c.height = p.h;
+      const x = c.getContext("2d"); x.drawImage(img, 0, 0, p.w, p.h);
+      const ik = document.createElement("canvas"); ik.width = p.w; ik.height = p.h; const ikc = ik.getContext("2d");
+      strokes.forEach((s) => drawStroke(ikc, s, 1)); x.drawImage(ik, 0, 0);
+      p.flat = c.toDataURL("image/jpeg", 0.85);
+    } else delete p.flat;
+    close(); done();
+  };
+  paintTools();
+}
+
+/* ================= EXPORT ================= */
+let pdfMode = "chosen", lastFile = null;
+$("#pdfChosen").onclick = () => { pdfMode = "chosen"; $("#pdfChosen").setAttribute("aria-pressed", true); $("#pdfAll").setAttribute("aria-pressed", false); };
+$("#pdfAll").onclick = () => { pdfMode = "all"; $("#pdfAll").setAttribute("aria-pressed", true); $("#pdfChosen").setAttribute("aria-pressed", false); };
+const safe = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "");
+const baseName = () => `SceltaMateriali_${safe(V.cantiere) || "cantiere"}_${safe(V.showroom) || "showroom"}_${(V.data || today()).replace(/-/g, "")}`;
+function offer(blob, name, type) {
+  const a = h("a", { href: URL.createObjectURL(blob), download: name }); document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  lastFile = new File([blob], name, { type });
+  const can = !!(navigator.canShare && navigator.canShare({ files: [lastFile] }));
+  $("#shareBtn").hidden = !can;
+  return can;
+}
+$("#shareBtn").onclick = async () => { if (!lastFile) return; try { await navigator.share({ files: [lastFile], title: lastFile.name }); } catch (e) { if (e && e.name !== "AbortError") msg("Condivisione non riuscita: il file è comunque nella cartella Download.", "err"); } };
+$("#expJson").onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: "scelta-materiali", v: 1, visita: V })], { type: "application/json" });
+  const can = offer(blob, baseName() + ".json", "application/json");
+  msg("File visita salvato in Download. Dall'archivio, «Apri file visita» lo riapre su un altro tablet." + (can ? " Con «Condividi» lo mandi subito." : ""), "ok");
+};
+$("#expPdf").onclick = async () => {
+  const b = $("#expPdf");
+  if (!window.jspdf) { msg("Generatore PDF non disponibile: ricarica l'app.", "err"); return; }
+  b.disabled = true; b.textContent = "Creo il PDF…";
+  try {
+    const doc = await buildPdf();
+    const can = offer(doc.output("blob"), baseName() + ".pdf", "application/pdf");
+    msg("PDF salvato in Download." + (can ? " Con «Condividi» lo mandi su Drive, mail o WhatsApp." : ""), "ok");
+  } catch (e) { console.error(e); msg("Il PDF non è stato creato. Riprova; se succede ancora, togli l'ultima foto aggiunta.", "err"); }
+  finally { b.disabled = false; b.textContent = "Esporta PDF"; }
+};
+
+/* ---------- PDF ---------- */
+const NAVY = [31, 58, 95], LIGHT = [228, 235, 243], GREEN = [30, 122, 76], GREENT = [227, 243, 234], GREY = [100, 110, 122];
+const PT = 0.3528, BOX = 2.5;
+const eurP = (n) => n == null ? "" : n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " EUR";
+const clean = (s) => String(s ?? "").replace(/[‘’‚′]/g, "'").replace(/[“”„″]/g, '"').replace(/[–—−]/g, "-").replace(/…/g, "...").replace(/✓/g, "").replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "");
+function optText(voce, o) {
+  const t = T[voce.tipo] || {};
+  const parts = [];
+  COMMON.slice(0, 5).forEach(([k, l]) => o.f[k] && parts.push([l, o.f[k]]));
+  (t.ex || []).forEach(([k, l]) => o.f[k] && parts.push([l, o.f[k]]));
+  (t.ch || []).forEach(([k, l]) => { const v = o.ch[k]; const s = Array.isArray(v) ? v.join(", ") : v; if (s) parts.push([l, s]); });
+  const p = num(o.f.prezzo), q = num(o.f.qta);
+  if (o.f.qta) parts.push(["Quantità", o.f.qta + (o.f.um ? " " + o.f.um : "")]);
+  if (p != null) parts.push(["Prezzo unitario", eurP(p) + (o.f.um ? "/" + o.f.um : "")]);
+  if (p != null && q != null) parts.push(["Importo", eurP(p * q)]);
+  return parts;
+}
+async function buildPdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const M = 10, CW = 190, PH = 297, BOTTOM = PH - 12, FS = 8, LH = FS * PT * 1.32, PX = 1.6, PY = 1.2;
+  let y = M;
+  doc.setLineWidth(0.2); doc.setDrawColor(138, 153, 171);
+  const imgCache = new Map();
+  const dims = async (src) => { if (!imgCache.has(src)) { const i = await loadImg(src); imgCache.set(src, { w: i.naturalWidth, h: i.naturalHeight }); } return imgCache.get(src); };
+
+  function lay(pieces, w, fs = FS) {
+    doc.setFontSize(fs);
+    const lines = []; let cur = { it: [], w: 0 };
+    const push = () => { while (cur.it.length && cur.it[cur.it.length - 1].sp) cur.w -= cur.it.pop().w; lines.push(cur); cur = { it: [], w: 0 }; };
+    const add = (it) => { if (cur.w + it.w > w && cur.it.length) { push(); if (it.sp) return; } cur.it.push(it); cur.w += it.w; };
+    for (const p of pieces) {
+      if (p.br) { push(); continue; }
+      const st = p.b ? "bold" : p.i ? "italic" : "normal"; doc.setFont("helvetica", st);
+      if (p.nb) { const t = clean(p.s); add({ s: t, st, c: p.c, w: doc.getTextWidth(t) }); continue; }
+      clean(p.s).split(/(\n|[ \t]+)/).forEach((tok) => {
+        if (!tok) return; if (tok === "\n") return push();
+        if (/^[ \t]+$/.test(tok)) return add({ sp: 1, w: doc.getTextWidth(" ") });
+        // hard-split very long words
+        let t = tok;
+        while (doc.getTextWidth(t) > w && t.length > 1) { let n = t.length; while (n > 1 && doc.getTextWidth(t.slice(0, n)) > w) n--; add({ s: t.slice(0, n), st, c: p.c, w: doc.getTextWidth(t.slice(0, n)) }); push(); t = t.slice(n); }
+        add({ s: t, st, c: p.c, w: doc.getTextWidth(t) });
+      });
+    }
+    if (cur.it.length || !lines.length) push();
+    return lines;
+  }
+  function drawLines(lines, x, y0, w, al, fs = FS) {
+    const lh = fs * PT * 1.32; doc.setFontSize(fs);
+    lines.forEach((ln, i) => {
+      let cx = al === "right" ? x + w - ln.w : al === "center" ? x + (w - ln.w) / 2 : x;
+      const base = y0 + i * lh + fs * PT * 0.98;
+      ln.it.forEach((it) => { if (!it.sp) { doc.setFont("helvetica", it.st); doc.setTextColor(...(it.c || [0, 0, 0])); doc.text(it.s, cx, base); } cx += it.w; });
+    });
+    doc.setTextColor(0, 0, 0);
+  }
+  function pageHead() {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+    doc.text(clean(`SCELTA MATERIALI - ${V.cantiere || ""} - ${V.showroom || ""} - ${fmtD(V.data)}`), M, y + 3);
+    doc.setTextColor(0, 0, 0); y += 6;
+  }
+  const newPage = () => { doc.addPage(); y = M; pageHead(); };
+  const ensure = (hh) => { if (y + hh > BOTTOM) newPage(); };
+  function row(cells, minH = 0, noBreak) {
+    const L = cells.map((c) => (c.p ? lay(c.p, c.w - 2 * PX, c.fs || FS) : []));
+    const hh = Math.max(minH, ...L.map((l, i) => l.length * (cells[i].fs || FS) * PT * 1.32 + 2 * PY));
+    if (!noBreak) ensure(hh);
+    let x = M;
+    cells.forEach((c, i) => {
+      if (c.fill) { doc.setFillColor(...c.fill); doc.rect(x, y, c.w, hh, "FD"); } else doc.rect(x, y, c.w, hh);
+      if (c.p) drawLines(L[i], x + PX, y + PY, c.w - 2 * PX, c.al, c.fs || FS);
+      x += c.w;
+    });
+    y += hh; return hh;
+  }
+  const measure = (pieces, w) => lay(pieces, w - 2 * PX).length * LH + 2 * PY;
+  function bar(t, sub, color = NAVY, hh = 6) {
+    ensure(hh + 12);
+    doc.setFillColor(...color); doc.rect(M, y, CW, hh, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(255, 255, 255); doc.text(clean(t), M + PX, y + hh / 2 + 1.2);
+    if (sub) { const tw = doc.getTextWidth(clean(t)); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(214, 224, 236); doc.text(clean(sub), M + PX + tw + 3, y + hh / 2 + 1.1); }
+    doc.setTextColor(0, 0, 0); y += hh;
+  }
+  async function fit(src, x, y0, w, hh) {
+    const d = await dims(src); const k = Math.min(w / d.w, hh / d.h), iw = d.w * k, ih = d.h * k;
+    doc.addImage(src, "JPEG", x + (w - iw) / 2, y0 + (hh - ih) / 2, iw, ih, undefined, "FAST");
+  }
+  async function photoRow(fotos) {
+    const per = 4, gapX = 2, w = (CW - gapX * (per - 1)) / per, ih = 34, ch = 4.5;
+    for (let i = 0; i < fotos.length; i += per) {
+      const chunk = fotos.slice(i, i + per);
+      ensure(ih + ch + 2);
+      for (let j = 0; j < chunk.length; j++) {
+        const x = M + j * (w + gapX), p = chunk[j];
+        doc.setDrawColor(200, 208, 218); doc.rect(x, y, w, ih + ch);
+        await fit(p.flat || p.src, x + 0.6, y + 0.6, w - 1.2, ih - 1.2);
+        if (p.cap) { const ln = lay([{ s: p.cap, i: 1, c: GREY }], w - 2, 6.5); drawLines([ln[0]], x + 1, y + ih + 0.4, w - 2, "left", 6.5); }
+      }
+      doc.setDrawColor(138, 153, 171);
+      y += ih + ch + 2;
+    }
+  }
+  const optsToPrint = (voce) => { const ch = voce.opz.filter((o) => o.scelta); const filled = voce.opz.filter((o) => o.scelta || Object.values(o.f).some(Boolean) || Object.values(o.ch).some((v) => v && v.length) || o.note || o.foto.length); return pdfMode === "chosen" && ch.length ? ch : filled; };
+  async function voceBlock(voce, title, amb) {
+    const opts = optsToPrint(voce);
+    if (!opts.length && !voce.note) return;
+    const chosen = voce.opz.some((o) => o.scelta);
+    const head = [{ s: title.toUpperCase(), b: 1, c: NAVY, nb: 1 }];
+    if (!chosen) head.push({ s: "   da scegliere", i: 1, c: GREY });
+    if (T[voce.tipo]?.calc === "riv" && voce.ml) head.push({ s: `   pareti ${voce.ml} m`, c: GREY });
+    ensure(6 + (opts.length ? measure([{ s: "x" }], CW) + 4 : 0));
+    row([{ w: CW, p: head, fill: LIGHT }], 5.5);
+    for (let i = 0; i < opts.length; i++) {
+      const o = opts[i], letter = LET[voce.opz.indexOf(o)];
+      const parts = optText(voce, o);
+      const pieces = [];
+      parts.forEach(([l, v], j) => { pieces.push({ s: l + ": ", c: GREY }, { s: String(v), b: l === "Marca" || l === "Modello / serie" ? 1 : 0 }); if (j < parts.length - 1) pieces.push({ s: "    " }); });
+      const nd = need(voce, amb, o); if (nd) pieces.push({ br: 1 }, { s: `Fabbisogno stimato: ${f2(nd.q)} ${nd.um} (+10% sfrido ${f2(nd.q * 1.1)} ${nd.um})`, i: 1, c: GREY });
+      if (o.note) pieces.push({ br: 1 }, { s: "Note: ", b: 1 }, { s: o.note });
+      if (!parts.length && !o.note && !nd) pieces.push({ s: "solo foto", i: 1, c: GREY });
+      const lab = [{ s: letter, b: 1 }];
+      if (o.scelta) lab.push({ br: 1 }, { s: "SCELTA", b: 1, c: GREEN });
+      row([{ w: 16, p: lab, al: "center", fill: o.scelta ? GREENT : null }, { w: CW - 16, p: pieces, fill: o.scelta ? GREENT : null }], 6);
+      if (o.foto.length) { y += 1; await photoRow(o.foto); }
+    }
+    if (voce.note) row([{ w: CW, p: [{ s: "Note voce: ", b: 1 }, { s: voce.note }] }]);
+    y += 1.5;
+  }
+  async function sketches(list, title) {
+    for (const p of list) {
+      const d = await dims(p.flat || p.src);
+      const maxH = BOTTOM - M - 20; let w = CW, hh = (d.h / d.w) * w; if (hh > maxH) { hh = maxH; w = (d.w / d.h) * hh; }
+      if (y + hh + 7 > BOTTOM) newPage();
+      row([{ w: CW, p: [{ s: (title ? title + " - " : "") + (p.cap || "Schizzo"), b: 1, c: NAVY }], fill: LIGHT }], 5.5, true);
+      await fit(p.flat || p.src, M + (CW - w) / 2, y + 1, w, hh); doc.rect(M, y, CW, hh + 2); y += hh + 4;
+    }
+  }
+
+  // ---- cover / intestazione
+  doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(...NAVY);
+  doc.text("SCELTA MATERIALI E FINITURE", M, y + 7);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...GREY);
+  doc.text(clean("Promemoria della visita in showroom per professionista, showroom e cliente" + (pdfMode === "all" ? " - tutte le opzioni valutate" : " - opzioni scelte")), M, y + 12);
+  doc.setTextColor(0, 0, 0); y += 16;
+  const I = [24, 71, 24, 71];
+  const pair = (a, av, b, bv) => row([{ w: I[0], p: [{ s: a, b: 1 }], fill: LIGHT }, { w: I[1], p: [{ s: av }] }, { w: I[2], p: [{ s: b, b: 1 }], fill: LIGHT }, { w: I[3], p: [{ s: bv }] }], 6);
+  pair("Cantiere", V.cantiere, "Showroom", V.showroom);
+  pair("Data visita", fmtD(V.data), "Presenti", V.presenti);
+  if (V.note) row([{ w: I[0], p: [{ s: "Note", b: 1 }], fill: LIGHT }, { w: CW - I[0], p: [{ s: V.note }] }], 6);
+  y += 4;
+
+  // ---- riepilogo
+  bar("RIEPILOGO SCELTE");
+  const R = [28, 30, 72, 18, 20, 22];
+  row([["Ambiente"], ["Voce"], ["Prodotto scelto"], ["Quantità", "right"], ["Prezzo un.", "right"], ["Importo", "right"]].map(([s, al], i) => ({ w: R[i], p: [{ s, b: 1 }], fill: LIGHT, al })));
+  let total = 0, anyPrice = false;
+  for (const { amb, voce, gen } of allVoci(V)) {
+    if (gen && voce.tipo === "Battiscopa" && !voce.opz.some((o) => o.scelta || o.f.marca || o.f.modello)) continue;
+    if (amb && !voce.opz.some((o) => o.scelta || Object.values(o.f).some(Boolean) || o.foto.length)) continue;
+    const c = voce.opz.find((o) => o.scelta);
+    const p = c ? num(c.f.prezzo) : null, q = c ? num(c.f.qta) : null, imp = p != null && q != null ? p * q : null;
+    if (imp != null) { total += imp; anyPrice = true; }
+    const prod = c ? ["marca", "modello", "finitura", "misure"].map((k) => c.f[k]).filter(Boolean).join(" - ") || "opzione " + LET[voce.opz.indexOf(c)] : "";
+    row([
+      { w: R[0], p: [{ s: amb ? amb.nome : "Tutta la casa" }] },
+      { w: R[1], p: [{ s: voce.tipo === "Pavimento" && amb ? "Pavimento" : voce.titolo }] },
+      { w: R[2], p: c ? [{ s: prod }] : [{ s: "da scegliere", i: 1, c: GREY }] },
+      { w: R[3], p: [{ s: c && c.f.qta ? c.f.qta + (c.f.um ? " " + c.f.um : "") : "" }], al: "right" },
+      { w: R[4], p: [{ s: p != null ? eurP(p) : "" }], al: "right" },
+      { w: R[5], p: [{ s: imp != null ? eurP(imp) : "" }], al: "right" },
+    ], 5.5);
+  }
+  if (anyPrice) row([{ w: CW - R[5], p: [{ s: "TOTALE INDICATIVO (IVA esclusa salvo diversa indicazione)", b: 1 }], al: "right", fill: LIGHT }, { w: R[5], p: [{ s: eurP(total), b: 1 }], al: "right", fill: LIGHT }], 6);
+  y += 4;
+
+  // ---- generale
+  bar("PAVIMENTAZIONE GENERALE", "per gli ambienti senza pavimento proprio");
+  await voceBlock(V.pavGen, "Pavimento generale", null);
+  await voceBlock(V.batGen, "Battiscopa", null);
+  y += 3;
+
+  // ---- ambienti
+  for (const a of V.amb) {
+    const sub = [a.sup ? f2(num(a.sup)) + " m²" : "", a.per ? "perimetro " + f2(num(a.per)) + " m" : "", a.pavProprio ? "pavimento proprio" : "pavimento generale"].filter(Boolean).join("  -  ");
+    bar(a.nome.toUpperCase(), sub);
+    const y0 = y;
+    if (a.pavProprio) await voceBlock(a.pav, "Pavimento", a);
+    for (const v of a.voci) await voceBlock(v, v.titolo, a);
+    if (a.note) row([{ w: CW, p: [{ s: "Note ambiente: ", b: 1 }, { s: a.note }] }]);
+    if (y === y0 && !a.sk.length) row([{ w: CW, p: [{ s: "Nessuna voce compilata: pavimento generale" + (a.battiscopa ? " e battiscopa generale" : "") + ".", i: 1, c: GREY }] }]);
+    if (a.sk.length) await sketches(a.sk, a.nome);
+    y += 3;
+  }
+  if (V.sk.length) { newPage(); bar("PLANIMETRIE E SCHIZZI"); y += 1; await sketches(V.sk, ""); }
+
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(119, 119, 119);
+    doc.text(clean(`Scelta materiali - ${V.cantiere || ""} - ${V.showroom || ""} - ${fmtD(V.data)}  -  Pag. ${i} di ${n}`), M + CW, PH - 6, { align: "right" });
+  }
+  return doc;
+}
+
+/* ================= BOOT ================= */
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+window.addEventListener("pagehide", () => { if (V) { clearTimeout(saveT); putVisit(JSON.parse(JSON.stringify(V))); } });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && V) { clearTimeout(saveT); putVisit(JSON.parse(JSON.stringify(V))); } });
+(async () => { await idbOpen(); showArchive(); })();
+window.__SM = { T, COMMON, need, buildPdf, setV: (v) => (V = v), allVoci, newVisit, newAmb, newVoce, newOpt };
+})();
+</script>
+</body></html>
